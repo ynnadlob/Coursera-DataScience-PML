@@ -1,0 +1,88 @@
+---
+title: "Proyecto del curso Practical Machine Learning"
+author: "Marcelo Lobato"
+date: "9 de noviembre de 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(lattice)
+library(ggplot2)
+library(rpart)
+library(rpart.plot)
+library(e1071)
+library(randomForest)
+```
+
+## Overview
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+
+## Load the data
+Load the files of training an testing, pml-training.csv and pml-testing.csv respectively
+
+```{r}
+train <- read.csv('pml-training.csv', na.strings = c("NA", "#DIV/0!", ""))
+str(train)
+test <- read.csv('pml-testing.csv', na.strings = c("NA", "#DIV/0!", ""))
+str(test)
+```
+
+## Data Cleaning
+We remove all "NA" values and validate that they no longer exist in the data sets
+
+```{r}
+train <- train[,colSums(is.na(train)) == 0]
+colSums(is.na(train))/nrow(train)
+test <-test[,colSums(is.na(test)) == 0]
+colSums(is.na(test))/nrow(test)
+```
+
+We eliminated columns 1 to 7 because they do not contribute to the development of the model
+
+```{r}
+train <- train[,-c(1:7)]
+test <- test[,-c(1:7)]
+```
+
+## Cross-Validation
+We separate the data into 75% for training and 25% for testing
+
+```{r}
+subSample <- createDataPartition(y=train$classe, p=0.75, list=FALSE)
+subTrain <- train[subSample, ] 
+subTest <- train[-subSample, ]
+```
+
+## Models
+### Decision tree Algorithm
+
+```{r}
+fitDT <- rpart(classe ~ ., data=subTrain, method="class")
+predictDT <- predict(fitDT, subTest, type = "class")
+rpart.plot(fitDT, main="Decision Tree")
+confusionMatrix(predictDT, subTest$classe)
+```
+
+### Random Forest Algorithm
+
+```{r}
+fitRF <- randomForest(classe ~ ., data=subTrain, method="class")
+predictRF <- predict(fitRF, subTest, type = "class")
+confusionMatrix(predictRF, subTest$classe)
+```
+
+## Prediction
+We make the prediction with the original testing data in the Random Forest Algorithm
+
+```{r}
+predict(fitRF, test)
+```
+
+
+## Conclusion
+### According to the confusion matrices, it can be clearly seen that the Random Forest Algorithm has a better accuracy than the Decision tree Algorithm.
+### RF Accuracy : 0.9959
+### DT Accuracy : 0.7549
